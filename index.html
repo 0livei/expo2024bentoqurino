@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receitas API</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Receitas culinarias  </h1>
+            <h2>Gerencie suas receitas de forma fácil e rápida</h2>
+        </header>
+
+        <main>
+            <section>
+                <h3>Adicionar Receita</h3>
+                <div class="format-selector">
+                    <label>
+                        <input type="radio" name="format" value="text" checked> Texto Simples
+                    </label>
+                    <label>
+                        <input type="radio" name="format" value="list"> Lista
+                    </label>
+                </div>
+                <form id="addForm">
+                    <input type="text" id="nome" placeholder="Nome da Receita" required>
+                    
+                    <div id="ingredientesContainer">
+                        <label for="ingredientes">Ingredientes</label>
+                        <textarea id="ingredientesText" placeholder="Ingredientes (separados por vírgulas)"></textarea>
+                        <ul id="ingredientesList" style="display: none;"></ul>
+                        <button type="button" id="addIngredient">Adicionar Ingrediente</button>
+                    </div>
+                    
+                    <div id="modoPreparoContainer">
+                        <label for="modoPreparo">Modo de Preparo</label>
+                        <textarea id="modoPreparoText" placeholder="Modo de Preparo (separados por vírgulas)"></textarea>
+                        <ul id="modoPreparoList" style="display: none;"></ul>
+                        <button type="button" id="addModoPreparo">Adicionar Modo de Preparo</button>
+                    </div>
+                    
+                    <textarea id="observacoes" placeholder="Observações"></textarea>
+                    <button type="submit">Adicionar</button>
+                </form>
+            </section>
+
+            <section>
+                <h3>Receitas</h3>
+                <ul id="receitasList"></ul>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Receitas API. Todos os direitos reservados.</p>
+        </footer>
+    </div>
+
+    <script>
+        const apiUrl = 'http://localhost:3000/receitas';
+
+        document.querySelectorAll('input[name="format"]').forEach(radio => {
+            radio.addEventListener('change', toggleInputFormat);
+        });
+
+        function toggleInputFormat() {
+            const format = document.querySelector('input[name="format"]:checked').value;
+            
+            if (format === 'list') {
+                document.getElementById('ingredientesText').style.display = 'none';
+                document.getElementById('ingredientesList').style.display = 'block';
+                document.getElementById('modoPreparoText').style.display = 'none';
+                document.getElementById('modoPreparoList').style.display = 'block';
+            } else {
+                document.getElementById('ingredientesText').style.display = 'block';
+                document.getElementById('ingredientesList').style.display = 'none';
+                document.getElementById('modoPreparoText').style.display = 'block';
+                document.getElementById('modoPreparoList').style.display = 'none';
+            }
+        }
+
+        document.getElementById('addIngredient').addEventListener('click', () => {
+            const ingredient = prompt('Digite um ingrediente:');
+            if (ingredient) {
+                const li = document.createElement('li');
+                li.textContent = ingredient;
+                document.getElementById('ingredientesList').appendChild(li);
+            }
+        });
+
+        document.getElementById('addModoPreparo').addEventListener('click', () => {
+            const step = prompt('Digite um passo do modo de preparo:');
+            if (step) {
+                const li = document.createElement('li');
+                li.textContent = step;
+                document.getElementById('modoPreparoList').appendChild(li);
+            }
+        });
+
+        async function fetchReceitas() {
+            const response = await fetch(apiUrl);
+            const receitas = await response.json();
+            const receitasList = document.getElementById('receitasList');
+            receitasList.innerHTML = '';
+            receitas.forEach(receita => {
+                const li = document.createElement('li');
+                li.textContent = `${receita.nome} - ${receita.ingredientes} - ${receita.modo_preparo} - ${receita.observacoes || ''}`;
+                receitasList.appendChild(li);
+            });
+        }
+
+        document.getElementById('addForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const nome = document.getElementById('nome').value;
+            const ingredientes = document.querySelector('input[name="format"]:checked').value === 'list'
+                ? Array.from(document.getElementById('ingredientesList').children).map(li => li.textContent).join(', ')
+                : document.getElementById('ingredientesText').value;
+            const modoPreparo = document.querySelector('input[name="format"]:checked').value === 'list'
+                ? Array.from(document.getElementById('modoPreparoList').children).map(li => li.textContent).join(', ')
+                : document.getElementById('modoPreparoText').value;
+            const observacoes = document.getElementById('observacoes').value;
+            
+            await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nome, ingredientes, modo_preparo: modoPreparo, observacoes })
+            });
+            document.getElementById('nome').value = '';
+            document.getElementById('ingredientesText').value = '';
+            document.getElementById('modoPreparoText').value = '';
+            document.getElementById('observacoes').value = '';
+            document.getElementById('ingredientesList').innerHTML = '';
+            document.getElementById('modoPreparoList').innerHTML = '';
+            fetchReceitas();
+            
+        });
+
+        toggleInputFormat(); // Definir formato inicial
+        fetchReceitas();
+    </script>
+</body>
+</html>
